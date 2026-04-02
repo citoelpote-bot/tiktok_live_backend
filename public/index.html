@@ -217,11 +217,6 @@
       transform: none;
       cursor: not-allowed;
     }
-    .btn-outline {
-      background: transparent;
-      border: 1px solid var(--pink);
-      color: var(--pink);
-    }
     .btn-small {
       padding: 10px 16px;
       font-size: 14px;
@@ -570,77 +565,6 @@
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
-    .chat-panel {
-      margin-top: 20px;
-      background: #fff;
-      border-radius: var(--radius);
-      padding: 12px;
-      box-shadow: var(--shadow);
-    }
-    .chat-panel .title {
-      font-size: 14px;
-      font-weight: 800;
-      margin-bottom: 8px;
-      text-align: left;
-    }
-    .chat-simulate {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .chat-input {
-      flex: 1;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 10px;
-      font-size: 14px;
-    }
-    .chat-btn {
-      padding: 10px 16px;
-      background: #1c1c1e;
-      color: #fff;
-      border: none;
-      border-radius: 14px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .chat-log {
-      background: #f8f8fa;
-      border-radius: 14px;
-      padding: 8px;
-      margin-top: 12px;
-      font-size: 12px;
-      color: #666;
-      max-height: 80px;
-      overflow-y: auto;
-    }
-    .suggestions-container {
-      position: relative;
-      flex: 1;
-    }
-    .suggestions-list {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 14px;
-      max-height: 200px;
-      overflow-y: auto;
-      z-index: 1000;
-      display: none;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-    .suggestions-list div {
-      padding: 10px;
-      cursor: pointer;
-      font-size: 14px;
-      border-bottom: 1px solid #eee;
-    }
-    .suggestions-list div:hover {
-      background-color: #f0f0f0;
-    }
     .connection-panel {
       background: #fff;
       border-radius: var(--radius);
@@ -682,14 +606,6 @@
       padding: 4px 10px;
       border-radius: 20px;
     }
-    .searching-text {
-      display: inline-block;
-      animation: pulse 1s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
     .live-label {
       display: flex;
       align-items: center;
@@ -714,6 +630,33 @@
     }
     .button-group .btn {
       flex: 1;
+    }
+    .suggestions-container {
+      position: relative;
+      flex: 1;
+    }
+    .suggestions-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 14px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .suggestions-list div {
+      padding: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      border-bottom: 1px solid #eee;
+    }
+    .suggestions-list div:hover {
+      background-color: #f0f0f0;
     }
   </style>
 </head>
@@ -785,15 +728,6 @@
             <div style="font-size: 10px; color: #888; margin-top: 10px; text-align: center;">
               💡 Conéctate a un live real para ver espectadores con sus fotos de perfil
             </div>
-          </div>
-
-          <div class="chat-panel">
-            <div class="title">🎤 Chat Commands</div>
-            <div class="chat-simulate">
-              <input type="text" id="chatCommandInput" class="chat-input" placeholder="Ej: !send @username 350" />
-              <button id="sendChatCommand" class="chat-btn">Send</button>
-            </div>
-            <div id="chatLog" class="chat-log">💬 Waiting for commands...</div>
           </div>
         </div>
       </div>
@@ -1037,58 +971,6 @@
       document.getElementById('customTotalLine').textContent = fmtUSD(+(n * 0.0106).toFixed(2));
     }
     
-    function processChatCommand(rawCommand){
-      const trimmed = rawCommand.trim();
-      if(!trimmed.startsWith('!send')) return false;
-      const parts = trimmed.split(/\s+/);
-      if(parts.length < 3) {
-        addChatLog(`❌ Invalid command. Use: !send @username amount`);
-        return false;
-      }
-      let targetUser = parts[1];
-      if(targetUser.startsWith('@')) targetUser = targetUser.substring(1);
-      const amountStr = parts[2];
-      const amount = parseInt(amountStr, 10);
-      if(isNaN(amount) || amount <= 0){
-        addChatLog(`❌ Invalid amount: ${amountStr}`);
-        return false;
-      }
-      document.getElementById('usernameInput').value = targetUser;
-      updateUserViews();
-      let bestPack = cfg.packs.reduce((prev, curr) => {
-        return (Math.abs(curr.coins - amount) < Math.abs(prev.coins - amount) ? curr : prev);
-      }, cfg.packs[0]);
-      const diffPercent = Math.abs(bestPack.coins - amount) / amount;
-      if(diffPercent > 0.2 || amount < cfg.packs[0].coins){
-        selectedCoins = amount;
-        selectedUsd = +(amount * 0.0106).toFixed(2);
-        updateAmounts();
-        addChatLog(`✅ Command received: ${targetUser} will receive ${amount} credits (custom).`);
-      } else {
-        selectedCoins = bestPack.coins;
-        selectedUsd = bestPack.usd;
-        updateAmounts();
-        addChatLog(`✅ Command received: ${targetUser} will receive ${bestPack.coins} credits (${bestPack.note} pack).`);
-      }
-      document.querySelectorAll('.pack').forEach(btn => {
-        const packCoins = Number(btn.dataset.coins);
-        if(packCoins === selectedCoins) btn.classList.add('active');
-        else btn.classList.remove('active');
-      });
-      showSheet();
-      return true;
-    }
-    
-    function addChatLog(msg, isErr = false) {
-      const logDiv = document.getElementById('chatLog');
-      const p = document.createElement('div');
-      p.textContent = msg;
-      p.style.color = isErr ? '#d93d61' : '#666';
-      logDiv.appendChild(p);
-      logDiv.scrollTop = logDiv.scrollHeight;
-      while(logDiv.children.length > 20) logDiv.removeChild(logDiv.firstChild);
-    }
-    
     const usernameInput = document.getElementById('usernameInput');
     const suggestionsDiv = document.getElementById('suggestionsList');
     
@@ -1142,22 +1024,10 @@
         updateUserViews();
         searchBtn.textContent = originalText;
         searchBtn.disabled = false;
-        
-        const found = currentViewersMap.get(username);
-        if(found && found.avatar) {
-          addChatLog(`✅ Usuario @${username} encontrado con foto de perfil`);
-        } else if(found) {
-          addChatLog(`✅ Usuario @${username} encontrado (sin foto de perfil disponible)`);
-        } else {
-          addChatLog(`⚠️ Usuario @${username} no está en la lista de espectadores actuales`);
-        }
       }, 800);
     });
     
-    function initChatIntegration() {
-      const sendBtn = document.getElementById('sendChatCommand');
-      const inputField = document.getElementById('chatCommandInput');
-      const datalist = document.getElementById('viewersList');
+    function initTikTokIntegration() {
       const connectBtn = document.getElementById('connectTikTokBtn');
       const disconnectBtn = document.getElementById('disconnectTikTokBtn');
       const tiktokUsernameInput = document.getElementById('tiktokUsername');
@@ -1172,19 +1042,10 @@
           });
         });
         
-        datalist.innerHTML = '';
-        viewerList.forEach(v => {
-          const option = document.createElement('option');
-          option.value = v.username;
-          datalist.appendChild(option);
-        });
-        
         const viewerCountSpan = document.getElementById('liveViewerCount');
         if(viewerCountSpan) {
           viewerCountSpan.textContent = `👥 ${viewerList.length}`;
         }
-        
-        addChatLog(`👥 ${viewerList.length} live viewers`);
         
         if (usernameInput.value.trim() !== '') {
           updateSuggestions(usernameInput.value);
@@ -1207,9 +1068,12 @@
           badge.innerHTML = '● Disconnected';
           connectBtn.style.display = 'block';
           disconnectBtn.style.display = 'none';
-          document.getElementById('liveViewerCount').textContent = '';
+          if(message === 'Desconectado manualmente') {
+            document.getElementById('liveViewerCount').textContent = '';
+            currentViewersMap.clear();
+            updateUserViews();
+          }
         }
-        if(message) addChatLog(message);
       }
       
       let ws = null;
@@ -1219,12 +1083,10 @@
       function connectWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const WS_URL = `${protocol}//${window.location.host}`;
-        addChatLog(`🔌 Connecting to ${WS_URL}`);
         
         ws = new WebSocket(WS_URL);
         
         ws.onopen = () => {
-          addChatLog('✅ Connected to TikTok Live server');
           reconnectAttempts = 0;
         };
         
@@ -1232,28 +1094,19 @@
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'viewers') {
-              addChatLog(`📡 Received ${data.data.length} viewers`);
               updateViewerSuggestions(data.data);
-            } else if (data.type === 'command') {
-              addChatLog(`📡 Command: ${data.command}`);
-              processChatCommand(data.command);
             } else if (data.type === 'connection_status') {
               updateConnectionStatus(data.connected, data.message, data.viewerCount);
             } else if (data.type === 'viewer_count') {
               document.getElementById('liveViewerCount').textContent = `👥 ${data.count}`;
             }
-          } catch (e) {
-            addChatLog(`❌ Error parsing message: ${e.message}`, true);
-          }
+          } catch (e) {}
         };
         
-        ws.onerror = (err) => {
-          addChatLog(`⚠️ WebSocket error`, true);
-        };
+        ws.onerror = (err) => {};
         
         ws.onclose = () => {
-          addChatLog('🔌 Disconnected. Reconnecting...', true);
-          updateConnectionStatus(false, 'Disconnected - Reconnecting...');
+          updateConnectionStatus(false, 'Desconectado - Reconectando...');
           if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++;
             setTimeout(connectWebSocket, 3000);
@@ -1261,22 +1114,17 @@
         };
       }
       
-      // Función para desconectar
       async function disconnectFromTikTok() {
         try {
-          addChatLog('🔌 Desconectando de TikTok Live...');
           const response = await fetch('/disconnect');
           const result = await response.json();
           if(result.status === 'disconnected') {
-            addChatLog('✅ Desconectado exitosamente');
-            updateConnectionStatus(false, 'Disconnected manually');
+            updateConnectionStatus(false, 'Desconectado manualmente');
             tiktokUsernameInput.value = '';
-          } else {
-            addChatLog('❌ Error al desconectar', true);
+            currentViewersMap.clear();
+            updateUserViews();
           }
-        } catch(err) {
-          addChatLog(`❌ Error: ${err.message}`, true);
-        }
+        } catch(err) {}
       }
       
       connectBtn.addEventListener('click', async () => {
@@ -1293,13 +1141,12 @@
           const response = await fetch(`/connect/${username}`);
           const result = await response.json();
           if(result.status === 'connected') {
-            addChatLog(`✅ Connected to @${username}'s live!`);
+            updateConnectionStatus(true, `Conectado a @${username}`);
           } else {
-            addChatLog(`❌ Failed to connect: ${result.error || 'Unknown error'}`, true);
             updateConnectionStatus(false);
           }
         } catch(err) {
-          addChatLog(`❌ Connection error: ${err.message}`, true);
+          updateConnectionStatus(false);
         } finally {
           connectBtn.textContent = 'Connect';
           connectBtn.disabled = false;
@@ -1312,26 +1159,6 @@
         await disconnectFromTikTok();
         disconnectBtn.textContent = 'Disconnect';
         disconnectBtn.disabled = false;
-      });
-      
-      sendBtn.addEventListener('click', () => {
-        const cmd = inputField.value;
-        if (cmd) {
-          addChatLog(`🧪 Simulation: ${cmd}`);
-          processChatCommand(cmd);
-          inputField.value = '';
-        }
-      });
-      
-      inputField.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          const cmd = inputField.value;
-          if (cmd) {
-            addChatLog(`🧪 Simulation: ${cmd}`);
-            processChatCommand(cmd);
-            inputField.value = '';
-          }
-        }
       });
       
       connectWebSocket();
@@ -1458,7 +1285,7 @@
     updateUserViews();
     updateAmounts();
     renderCustom();
-    initChatIntegration();
+    initTikTokIntegration();
   </script>
 </body>
-            </html>
+</html>
